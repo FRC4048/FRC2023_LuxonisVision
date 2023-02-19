@@ -9,7 +9,7 @@ import time
 
 
 # Get argument first
-nnBlobPath = str((Path(__file__).parent / Path('../models/best_openvino_2021.4_6shave.blob')).resolve().absolute())
+nnBlobPath = str((Path(__file__).parent / Path('../best_openvino_2021.4_6shave.blob')).resolve().absolute())
 #if 1 < len(sys.argv):
 #    arg = sys.argv[1]
 #    if arg == "yolo3":
