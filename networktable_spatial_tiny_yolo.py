@@ -6,20 +6,26 @@ import cv2
 import depthai as dai
 import numpy as np
 import time
+#import wpilib
+import ntcore
 
+# Network Table Instance
+inst = ntcore.NetworkTableInstance.getDefault()
+inst.startClient4("Shuffleboard")
+inst.setServerTeam(4048)
+table = inst.getTable("datatable")
+inst.startDSClient()
+dblTopic = inst.getDoubleTopic("/datatable/Luxonis")
+stringTopic = inst.getStringTopic("/datatable/Luxonis")
+xPub = table.getDoubleTopic("x").publish()
+yPub = table.getDoubleTopic("y").publish()
+zPub = table.getDoubleTopic("z").publish()
+fpsPub = table.getDoubleTopic("fps").publish()
+labelPub = table.getStringTopic("label").publish()
+datatable = inst.getTable("datatable/Luxonis")
 
 # Get argument first
 nnBlobPath = str((Path(__file__).parent / Path('best_openvino_2021.4_6shave.blob')).resolve().absolute())
-#if 1 < len(sys.argv):
-#    arg = sys.argv[1]
-#    if arg == "yolo3":
-#        nnBlobPath = str((Path(__file__).parent / Path('../models/yolo-v3-tiny-tf_openvino_2021.4_6shave.blob')).resolve().absolute())
-#    elif arg == "yolo4":
-#        nnBlobPath = str((Path(__file__).parent / Path('../models/yolo-v4-tiny-tf_openvino_2021.4_6shave.blob')).resolve().absolute())
-#    else:
-#        nnBlobPath = arg
-#else:
-#    print("Using Tiny YoloV4 model. If you wish to use Tiny YOLOv3, call 'tiny_yolo.py yolo3'")
 
 if not Path(nnBlobPath).exists():
     import sys
@@ -120,6 +126,11 @@ with dai.Device(pipeline) as device:
         depth = depthQueue.get()
         inNN = networkQueue.get()
 
+        closest_x = 0.0
+        closest_y = 0.0
+        closest_z = 0.0
+        label = "none"
+
         if printOutputLayersOnce:
             toPrint = 'Output layer names:'
             for ten in inNN.getAllLayerNames():
@@ -127,57 +138,34 @@ with dai.Device(pipeline) as device:
             print(toPrint)
             printOutputLayersOnce = False;
 
-        frame = inPreview.getCvFrame()
-        depthFrame = depth.getFrame() # depthFrame values are in millimeters
-
-        depthFrameColor = cv2.normalize(depthFrame, None, 255, 0, cv2.NORM_INF, cv2.CV_8UC1)
-        depthFrameColor = cv2.equalizeHist(depthFrameColor)
-        depthFrameColor = cv2.applyColorMap(depthFrameColor, cv2.COLORMAP_HOT)
-
         counter+=1
         current_time = time.monotonic()
         if (current_time - startTime) > 1 :
             fps = counter / (current_time - startTime)
             counter = 0
             startTime = current_time
-
+        fpsPub.set(fps)
         detections = inDet.detections
 
         # If the frame is available, draw bounding boxes on it and show the frame
-        height = frame.shape[0]
-        width  = frame.shape[1]
-        for detection in detections:
-            roiData = detection.boundingBoxMapping
-            roi = roiData.roi
-            roi = roi.denormalize(depthFrameColor.shape[1], depthFrameColor.shape[0])
-            topLeft = roi.topLeft()
-            bottomRight = roi.bottomRight()
-            xmin = int(topLeft.x)
-            ymin = int(topLeft.y)
-            xmax = int(bottomRight.x)
-            ymax = int(bottomRight.y)
-            cv2.rectangle(depthFrameColor, (xmin, ymin), (xmax, ymax), color, cv2.FONT_HERSHEY_SCRIPT_SIMPLEX)
-
-            # Denormalize bounding box
-            x1 = int(detection.xmin * width)
-            x2 = int(detection.xmax * width)
-            y1 = int(detection.ymin * height)
-            y2 = int(detection.ymax * height)
+        if (len(detections) > 0):
+            closest_detection = detections[0]
+            for detection in detections:
+                 if (closest_detection.spatialCoordinates.z/1000 > detection.spatialCoordinates.z/1000):
+                      closest_detection = detection
+            closest_x = closest_detection.spatialCoordinates.x/1000
+            closest_y = closest_detection.spatialCoordinates.y/1000
+            closest_z = closest_detection.spatialCoordinates.z/1000
             try:
-                label = labelMap[detection.label]
+               label = str(labelMap[closest_detection.label])
             except:
-                label = detection.label
-            cv2.putText(frame, str(label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, "{:.2f}".format(detection.confidence*100), (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, f"X: {int(detection.spatialCoordinates.x)/1000} m", (x1 + 10, y1 + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, f"Y: {int(detection.spatialCoordinates.y)/1000} m", (x1 + 10, y1 + 65), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, f"Z: {int(detection.spatialCoordinates.z)/1000} m", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-
-            cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
-
-        cv2.putText(frame, "NN fps: {:.2f}".format(fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
-        cv2.imshow("depth", depthFrameColor)
-        cv2.imshow("rgb", frame)
+               label = str(closest_detection.label)
+             
+        #Publishing
+        xPub.set(closest_x)
+        yPub.set(closest_y)
+        zPub.set(closest_z)
+        labelPub.set(label)
 
         if cv2.waitKey(1) == ord('q'):
             break

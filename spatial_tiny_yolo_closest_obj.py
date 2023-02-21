@@ -142,12 +142,16 @@ with dai.Device(pipeline) as device:
             startTime = current_time
 
         detections = inDet.detections
+        if (len(detections) > 0):
+            closest_detection = detections[0]
 
         # If the frame is available, draw bounding boxes on it and show the frame
-        height = frame.shape[0]
-        width  = frame.shape[1]
-        for detection in detections:
-            roiData = detection.boundingBoxMapping
+            height = frame.shape[0]
+            width  = frame.shape[1]
+            for detection in detections:
+                if (closest_detection.spatialCoordinates.z/1000 > detection.spatialCoordinates.z/1000):
+                    closest_detection = detection
+            roiData = closest_detection.boundingBoxMapping
             roi = roiData.roi
             roi = roi.denormalize(depthFrameColor.shape[1], depthFrameColor.shape[0])
             topLeft = roi.topLeft()
@@ -159,19 +163,19 @@ with dai.Device(pipeline) as device:
             cv2.rectangle(depthFrameColor, (xmin, ymin), (xmax, ymax), color, cv2.FONT_HERSHEY_SCRIPT_SIMPLEX)
 
             # Denormalize bounding box
-            x1 = int(detection.xmin * width)
-            x2 = int(detection.xmax * width)
-            y1 = int(detection.ymin * height)
-            y2 = int(detection.ymax * height)
+            x1 = int(closest_detection.xmin * width)
+            x2 = int(closest_detection.xmax * width)
+            y1 = int(closest_detection.ymin * height)
+            y2 = int(closest_detection.ymax * height)
             try:
                 label = labelMap[detection.label]
             except:
                 label = detection.label
             cv2.putText(frame, str(label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
             cv2.putText(frame, "{:.2f}".format(detection.confidence*100), (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, f"X: {int(detection.spatialCoordinates.x)/1000} m", (x1 + 10, y1 + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, f"Y: {int(detection.spatialCoordinates.y)/1000} m", (x1 + 10, y1 + 65), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, f"Z: {int(detection.spatialCoordinates.z)/1000} m", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+            cv2.putText(frame, f"X: {int(closest_detection.spatialCoordinates.x)/1000} m", (x1 + 10, y1 + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+            cv2.putText(frame, f"Y: {int(closest_detection.spatialCoordinates.y)/1000} m", (x1 + 10, y1 + 65), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+            cv2.putText(frame, f"Z: {int(closest_detection.spatialCoordinates.z)/1000} m", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
 
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
 
