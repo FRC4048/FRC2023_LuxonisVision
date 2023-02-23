@@ -16,4 +16,4 @@ COPY best.json best_openvino_2021.4_6shave.blob networktable_spatial_tiny_yolo.p
 RUN pip3 install pyntcore
 
 # Parameters and command to run when the container is run
-ENTRYPOINT ["python3", "networktable_spatial_tiny_yolo.py"]
+CMD ["python3", "networktable_spatial_tiny_yolo.py"]
