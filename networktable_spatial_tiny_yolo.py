@@ -11,9 +11,9 @@ import ntcore
 
 # Network Table Instance
 inst = ntcore.NetworkTableInstance.getDefault()
-inst.startClient4("Shuffleboard")
+inst.startClient4("Luxonis Client")
 inst.setServerTeam(4048)
-table = inst.getTable("datatable")
+table = inst.getTable("Luxonis")
 inst.startDSClient()
 dblTopic = inst.getDoubleTopic("/datatable/Luxonis")
 stringTopic = inst.getStringTopic("/datatable/Luxonis")
