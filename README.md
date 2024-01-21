@@ -35,3 +35,7 @@ When running in test, you can change the IP addresses like:
 ```
 docker run -e NT_IP=<ip.address> --rm --privileged -v /dev/bus/usb:/dev/bus/usb --device-cgroup-rule='c 189:* rmw' luxonis 
 ```
+For running in the background and setting it to start when the pi restart:
+```
+docker run -d --restart always --privileged -v /dev/bus/usb:/dev/bus/usb --device-cgroup-rule='c 189:* rmw' luxonis
+```
