@@ -2,4 +2,3 @@ pyntcore
 depthai
 numpy
 opencv-python
-robotpy

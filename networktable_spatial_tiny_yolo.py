@@ -6,9 +6,7 @@ from pathlib import Path
 import sys
 import cv2
 import depthai as dai
-import numpy as np
 import time
-import robotpy
 import ntcore
 
 #Network Table Instance
