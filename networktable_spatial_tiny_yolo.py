@@ -8,7 +8,6 @@ import cv2
 import depthai as dai
 import numpy as np
 import time
-import robotpy
 import ntcore
 
 #Network Table Instance
@@ -17,6 +16,7 @@ inst.startClient4("Luxonis Client")
 inst.setServerTeam(4048)
 table = inst.getTable("Luxonis")
 inst.startDSClient()
+print(inst.isConnected())
 dblTopic = inst.getDoubleTopic("/datatable/Luxonis")
 stringTopic = inst.getStringTopic("/datatable/Luxonis")
 #returns a list of topics[x,y,z,fps,probability,label]
@@ -259,7 +259,10 @@ with dai.Device(pipeline) as device:
         publisher()[2].set(closest_z)
         publisher()[5].set(label)
         publisher()[4].set(confidence)
-        # print(f"closest_x: {closest_x}, closest_y: {closest_y}, closest_z: {closest_z}" )
+        if (inst.isConnected()):
+            print(f"closest_x: {closest_x}, closest_y: {closest_y}, closest_z: {closest_z}")
+        else:
+            print("Networktables not Connected")
         # # print(spatialDetectionNetwork.inputDepth)
 
 

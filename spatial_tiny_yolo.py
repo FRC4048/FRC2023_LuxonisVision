@@ -9,7 +9,7 @@ import time
 
 
 # Get argument first
-nnBlobPath = str((Path(__file__).parent / Path('best_openvino_2021.4_6shave.blob')).resolve().absolute())
+nnBlobPath = str((Path(__file__).parent / Path('YOLOv8n_openvino_2022.1_6shave.blob')).resolve().absolute())
 #if 1 < len(sys.argv):
 #    arg = sys.argv[1]
 #    if arg == "yolo3":
@@ -27,7 +27,7 @@ if not Path(nnBlobPath).exists():
 
 # Tiny yolo v3/4 label texts
 labelMap = [
-    "cone",         "cube"
+    "note"
 ]
 
 syncNN = True
@@ -53,7 +53,7 @@ xoutDepth.setStreamName("depth")
 nnNetworkOut.setStreamName("nnNetwork")
 
 # Properties
-camRgb.setPreviewSize(640, 640)
+camRgb.setPreviewSize(640,640)
 camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
 camRgb.setInterleaved(False)
 camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
@@ -70,17 +70,34 @@ stereo.setDepthAlign(dai.CameraBoardSocket.RGB)
 stereo.setOutputSize(monoLeft.getResolutionWidth(), monoLeft.getResolutionHeight())
 
 spatialDetectionNetwork.setBlobPath(nnBlobPath)
-spatialDetectionNetwork.setConfidenceThreshold(0.65)
+spatialDetectionNetwork.setConfidenceThreshold(0.5)
 spatialDetectionNetwork.input.setBlocking(False)
 spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
 spatialDetectionNetwork.setDepthLowerThreshold(100)
 spatialDetectionNetwork.setDepthUpperThreshold(5000)
 
 # Yolo specific parameters
-spatialDetectionNetwork.setNumClasses(2)
+spatialDetectionNetwork.setNumClasses(1)
 spatialDetectionNetwork.setCoordinateSize(4)
-spatialDetectionNetwork.setAnchors([110.0,13.0,16.0,30.0,33.0,23.0,30.0,61.0,62.0,45.0,59.0,119.0,116.0,90.0,156.0,198.0,373.0,326.0])
-spatialDetectionNetwork.setAnchorMasks({ "side80": [0,1,2],"side40": [3,4,5],"side20": [6,7,8]})
+spatialDetectionNetwork.setAnchors([10.0,
+                13.0,
+                16.0,
+                30.0,
+                33.0,
+                23.0,
+                30.0,
+                61.0,
+                62.0,
+                45.0,
+                59.0,
+                119.0,
+                116.0,
+                90.0,
+                156.0,
+                198.0,
+                373.0,
+                326.0])
+spatialDetectionNetwork.setAnchorMasks({ "side52": [0,1,2],"side26": [3,4,5],"side13": [6,7,8]})
 spatialDetectionNetwork.setIouThreshold(0.5)
 
 # Linking
@@ -156,7 +173,7 @@ with dai.Device(pipeline) as device:
             ymin = int(topLeft.y)
             xmax = int(bottomRight.x)
             ymax = int(bottomRight.y)
-            cv2.rectangle(depthFrameColor, (xmin, ymin), (xmax, ymax), color, cv2.FONT_HERSHEY_SCRIPT_SIMPLEX)
+
 
             # Denormalize bounding box
             x1 = int(detection.xmin * width)
