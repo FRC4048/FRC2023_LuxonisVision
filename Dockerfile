@@ -10,10 +10,10 @@ ENV NT_IP=10.40.48.2
 
 WORKDIR luxonis
 # copy model and python scripts
-COPY best.json best_openvino_2021.4_6shave.blob networktable_spatial_tiny_yolo.py ./
+COPY best.json best_openvino_2022.1_6shave.blob networktable_spatial_tiny_yolo.py requirements-locked.txt ./
 
 # Install Network tables library
-RUN pip3 install pyntcore
+RUN pip install --verbose --no-deps -r requirements-locked.txt
 
 # Parameters and command to run when the container is run
 CMD ["python3", "networktable_spatial_tiny_yolo.py"]
