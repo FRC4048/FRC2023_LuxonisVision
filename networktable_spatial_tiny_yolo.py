@@ -19,7 +19,7 @@ inst.startDSClient()
 if(not(inst.isConnected())):
     print("Not Connected")
 else:
-    print("Connected")
+    print(inst.getConnections())
 dblTopic = inst.getDoubleTopic("/datatable/Luxonis")
 stringTopic = inst.getStringTopic("/datatable/Luxonis")
 #returns a list of topics[x,y,z,fps,probability,label]
@@ -264,8 +264,6 @@ with dai.Device(pipeline) as device:
         publisher()[4].set(confidence)
         if (inst.isConnected()):
             print(f"closest_x: {closest_x}, closest_y: {closest_y}, closest_z: {closest_z}")
-        else:
-            print("Networktables not Connected")
         # # print(spatialDetectionNetwork.inputDepth)
 
 
