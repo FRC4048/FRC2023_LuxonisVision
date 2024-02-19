@@ -8,9 +8,18 @@ import cv2
 import depthai as dai
 import time
 import ntcore
+import os
+
+NT_IP = os.environ.get('NT_IP', '10.40.48.2')
+DEBUG = os.environ.get('DEBUG', False)
+SCREEN_FRAME = os.environ.get('SCREEN_FRAME', False)
+
+print(f'NT_IP: {NT_IP}')
+print(f'Debug: {DEBUG}')
 
 #Network Table Instance
 inst = ntcore.NetworkTableInstance.getDefault()
+inst.setServer(NT_IP)
 inst.startClient4("Luxonis Client")
 inst.setServerTeam(4048)
 while not inst.isConnected():
@@ -60,20 +69,15 @@ monoRight = pipeline.create(dai.node.MonoCamera)
 stereo = pipeline.create(dai.node.StereoDepth)
 nnNetworkOut = pipeline.create(dai.node.XLinkOut)
 
-
 #Output Nodes
 xoutRgb = pipeline.create(dai.node.XLinkOut)
 xoutNN = pipeline.create(dai.node.XLinkOut)
 xoutDepth = pipeline.create(dai.node.XLinkOut)
 
-
-
 xoutRgb.setStreamName("rgb")
 xoutNN.setStreamName("detections")
 xoutDepth.setStreamName("depth")
 nnNetworkOut.setStreamName("nnNetwork")
-
-
 
 # Properties
 camRgb.setPreviewSize(640,640)
@@ -91,7 +95,6 @@ stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)
 # Align depth map to the perspective of RGB camera, on which inference is done
 stereo.setDepthAlign(dai.CameraBoardSocket.RGB)
 stereo.setOutputSize(monoLeft.getResolutionWidth(), monoLeft.getResolutionHeight())
-
 
 spatialDetectionNetwork.setBlobPath(nnBlobPath)
 spatialDetectionNetwork.setConfidenceThreshold(0.5)
@@ -124,7 +127,6 @@ spatialDetectionNetwork.setCoordinateSize(4)
 # spatialDetectionNetwork.setAnchorMasks({ "side52": [0,1,2],"side26": [3,4,5],"side13": [6,7,8]})
 spatialDetectionNetwork.setIouThreshold(0.5)
 
-
 # Linking
 monoLeft.out.link(stereo.left)
 monoRight.out.link(stereo.right)
@@ -140,7 +142,6 @@ spatialDetectionNetwork.out.link(xoutNN.input)
 stereo.depth.link(spatialDetectionNetwork.inputDepth)
 spatialDetectionNetwork.passthroughDepth.link(xoutDepth.input)
 spatialDetectionNetwork.outNetwork.link(nnNetworkOut.input)
-
 
 # Connect to device and start pipeline
 with dai.Device(pipeline) as device:
@@ -171,9 +172,9 @@ with dai.Device(pipeline) as device:
 
         confidenceInterval = 0.65
         confidence = 0.0
-        closest_x = 0.0
-        closest_y = 0.0
-        closest_z = 0.0
+        closest_x = 9999.0
+        closest_y = 9999.0
+        closest_z = 9999.0
         label = "none"
 
         if printOutputLayersOnce:
@@ -181,7 +182,7 @@ with dai.Device(pipeline) as device:
             for ten in inNN.getAllLayerNames():
                 toPrint = f'{toPrint} {ten},'
             print(toPrint)
-            printOutputLayersOnce = False;
+            printOutputLayersOnce = False
         #Added this code
         frame = inPreview.getCvFrame()
         depthFrame = depth.getFrame()  # depthFrame values are in millimeters
@@ -217,7 +218,6 @@ with dai.Device(pipeline) as device:
             except:
                label = str(closest_detection.label)
 
-
             roiData = detection.boundingBoxMapping
             roi = roiData.roi
             roi = roi.denormalize(depthFrameColor.shape[1], depthFrameColor.shape[0])
@@ -233,26 +233,29 @@ with dai.Device(pipeline) as device:
             x2 = int(detection.xmax * width)
             y1 = int(detection.ymin * height)
             y2 = int(detection.ymax * height)
-            cv2.rectangle(depthFrameColor, (xmin, ymin), (xmax, ymax), color, cv2.FONT_HERSHEY_SCRIPT_SIMPLEX)
 
             try:
                 label = labelMap[detection.label]
             except:
                 label = detection.label
-            cv2.putText(frame, str(label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, "{:.2f}".format(detection.confidence * 100), (x1 + 10, y1 + 35),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, f"X: {int(closest_detection.spatialCoordinates.x) / 1000} m", (x1 + 10, y1 + 50),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, f"Y: {int(closest_detection.spatialCoordinates.y) / 1000} m", (x1 + 10, y1 + 65),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, f"Z: {int(closest_detection.spatialCoordinates.z) / 1000} m", (x1 + 10, y1 + 80),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame,f"FPS: {int(fps)}",(x1 + 10, y1 + 95),cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
 
-            cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
+            if SCREEN_FRAME:
+                cv2.rectangle(depthFrameColor, (xmin, ymin), (xmax, ymax), color, cv2.FONT_HERSHEY_SCRIPT_SIMPLEX)
 
-            cv2.putText(frame, "NN fps: {:.2f}".format(fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
+                cv2.putText(frame, str(label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                cv2.putText(frame, "{:.2f}".format(detection.confidence * 100), (x1 + 10, y1 + 35),
+                                cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                cv2.putText(frame, f"X: {int(closest_detection.spatialCoordinates.x) / 1000} m", (x1 + 10, y1 + 50),
+                                cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                cv2.putText(frame, f"Y: {int(closest_detection.spatialCoordinates.y) / 1000} m", (x1 + 10, y1 + 65),
+                                cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                cv2.putText(frame, f"Z: {int(closest_detection.spatialCoordinates.z) / 1000} m", (x1 + 10, y1 + 80),
+                                cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                cv2.putText(frame,f"FPS: {int(fps)}",(x1 + 10, y1 + 95),cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+
+                cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
+
+                cv2.putText(frame, "NN fps: {:.2f}".format(fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
         # cv2.imshow("depth", depthFrameColor)
         # cv2.imshow("rgb", frame)
         # returns a list of topics[x,y,z,fps,probability,label]
@@ -262,10 +265,10 @@ with dai.Device(pipeline) as device:
         topics[2].set(closest_z)
         topics[5].set(label)
         topics[4].set(confidence)
-        if (inst.isConnected()):
+
+        if (inst.isConnected() and DEBUG):
             print(f"closest_x: {closest_x}, closest_y: {closest_y}, closest_z: {closest_z}")
         # # print(spatialDetectionNetwork.inputDepth)
-
 
         if cv2.waitKey(1) == ord('q'):
             break
