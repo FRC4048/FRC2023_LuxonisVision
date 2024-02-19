@@ -12,7 +12,7 @@ WORKDIR luxonis
 COPY YOLOv8n.json YOLOv8n_openvino_2022.1_6shave.blob networktable_spatial_tiny_yolo.py ./
 
 # Install Network tables library
-RUN pip3 install pyntcore
+RUN pip3 install --find-links https://tortall.net/~robotpy/wheels/2023/raspbian/ pyntcore
 
 # Parameters and command to run when the container is run
 CMD ["python3", "networktable_spatial_tiny_yolo.py"]

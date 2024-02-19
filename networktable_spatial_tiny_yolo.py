@@ -13,12 +13,13 @@ import ntcore
 inst = ntcore.NetworkTableInstance.getDefault()
 inst.startClient4("Luxonis Client")
 inst.setServerTeam(4048)
+while not inst.isConnected():
+   pass
+print("CONNECTED!")
+
 table = inst.getTable("Luxonis")
 inst.startDSClient()
-if(not(inst.isConnected())):
-    print("Not Connected")
-else:
-    print(inst.getConnections())
+
 dblTopic = inst.getDoubleTopic("/datatable/Luxonis")
 stringTopic = inst.getStringTopic("/datatable/Luxonis")
 #returns a list of topics[x,y,z,fps,probability,label]
@@ -194,7 +195,7 @@ with dai.Device(pipeline) as device:
             fps = counter / (current_time - startTime)
             counter = 0
             startTime = current_time
-        publisher()[3].set(fps)
+        topics[3].set(fps)
         detections = inDet.detections
 
         height = frame.shape[0]
@@ -256,11 +257,11 @@ with dai.Device(pipeline) as device:
         # cv2.imshow("rgb", frame)
         # returns a list of topics[x,y,z,fps,probability,label]
         # x, y, z are given in meters and measure the distance from the camera
-        publisher()[0].set(closest_x)
-        publisher()[1].set(closest_y)
-        publisher()[2].set(closest_z)
-        publisher()[5].set(label)
-        publisher()[4].set(confidence)
+        topics[0].set(closest_x)
+        topics[1].set(closest_y)
+        topics[2].set(closest_z)
+        topics[5].set(label)
+        topics[4].set(confidence)
         if (inst.isConnected()):
             print(f"closest_x: {closest_x}, closest_y: {closest_y}, closest_z: {closest_z}")
         # # print(spatialDetectionNetwork.inputDepth)
